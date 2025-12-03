@@ -2463,28 +2463,33 @@
         } else {
           // Initialize Firebase for authenticated users
           const firebaseConfig = {
-            apiKey: "AIzaSyAyl5uUUlf7LSqCePTwQSe2j_lqv17iXiM",
-            authDomain: "aipakdhoto.firebaseapp.com",
-            projectId: "aipakdhoto",
-            storageBucket: "aipakdhoto.firebasestorage.app",
-            messagingSenderId: "542499206190",
-            appId: "1:542499206190:web:ad01bb9604f67880371bbf",
-            measurementId: "G-W023RF9TBV",
+            apiKey: "AIzaSyAJKrdRjadbUHSgYArdCgLXQ1XDmMLQ1hw",
+            authDomain: "spyder-7572e.firebaseapp.com",
+            projectId: "spyder-7572e",
+            storageBucket: "spyder-7572e.firebasestorage.app",
+            messagingSenderId: "488423115710",
+            appId: "1:488423115710:web:1f4ed130dd8fa76b0f47ef",
+            measurementId: "G-KLEJMNDSPS",
           };
 
           const app = initializeApp(firebaseConfig);
           const auth = getAuth(app);
 
           // Check if user is logged in
+          let authCheckComplete = false;
           onAuthStateChanged(auth, (user) => {
+            if (authCheckComplete) return; // Prevent multiple redirects
+            
             if (!user) {
               // Not logged in and not guest mode, redirect to login page
               console.log(
                 "[Auth] ❌ No user logged in, redirecting to login..."
               );
+              authCheckComplete = true;
               window.location.href = "login.html";
             } else {
               console.log("[Auth] ✅ User authenticated:", user.email);
+              authCheckComplete = true;
             }
           });
         }
