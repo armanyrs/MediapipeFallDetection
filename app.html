@@ -1,0 +1,2510 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <title>SPYDER - Smart Pose Detection & Rehab</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="SPYDER - Smart Pose sYstem for Detection & Exercise Rehab. Fall detection, sleeping detection with ROI, and 7 medical rehabilitation exercises with Rehab Mode."
+    />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      /* Integrated page specific styles */
+      html {
+        height: 100%;
+      }
+
+      body {
+        height: 100%;
+        overflow-x: hidden;
+      }
+
+      .integrated-container {
+        display: grid;
+        grid-template-columns: 1fr 400px;
+        gap: 16px;
+        padding: 16px;
+        max-width: 1600px;
+        margin: 0 auto;
+        height: calc(100vh - 60px); /* Account for header height */
+        overflow: hidden;
+      }
+
+      @media (max-width: 1100px) {
+        .integrated-container {
+          grid-template-columns: 1fr;
+          height: auto;
+          overflow: visible;
+        }
+
+        body {
+          height: auto;
+          overflow-y: auto;
+        }
+      }
+
+      .camera-section {
+        background: var(--panel);
+        border: 1px solid #1b2540;
+        border-radius: 12px;
+        padding: 12px;
+        min-height: 400px;
+        position: sticky;
+        top: 16px;
+        align-self: start;
+        max-height: calc(100vh - 92px); /* Account for header and padding */
+        overflow: hidden;
+      }
+
+      @media (max-width: 1100px) {
+        .camera-section {
+          position: sticky;
+          top: 0;
+          z-index: 100;
+          max-height: 50vh;
+          min-height: 280px;
+        }
+      }
+
+      .camera-container {
+        position: relative;
+        width: 100%;
+        background: #000;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      .camera-container video {
+        width: 100%;
+        display: block;
+        border-radius: 8px;
+        background: #000;
+      }
+
+      .camera-container canvas {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+      }
+
+      .camera-container #roi-canvas {
+        pointer-events: none;
+        z-index: 5;
+      }
+
+      .camera-placeholder {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 360px;
+        color: var(--muted);
+        font-size: 16px;
+        gap: 12px;
+      }
+
+      .camera-placeholder svg {
+        width: 64px;
+        height: 64px;
+        opacity: 0.5;
+      }
+
+      .controls-section {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        overflow-y: auto;
+        max-height: calc(100vh - 92px); /* Account for header and padding */
+        padding-right: 8px;
+        scrollbar-width: thin;
+        scrollbar-color: #2b3b6b #15244a;
+      }
+
+      .controls-section::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      .controls-section::-webkit-scrollbar-track {
+        background: #15244a;
+        border-radius: 4px;
+      }
+
+      .controls-section::-webkit-scrollbar-thumb {
+        background: #2b3b6b;
+        border-radius: 4px;
+      }
+
+      .controls-section::-webkit-scrollbar-thumb:hover {
+        background: #3b4b7b;
+      }
+
+      @media (max-width: 1100px) {
+        .controls-section {
+          max-height: none;
+          overflow-y: visible;
+          padding-right: 0;
+        }
+      }
+
+      /* Toggle switch styles */
+      .toggle-panel {
+        background: var(--panel);
+        border: 1px solid #1b2540;
+        border-radius: 12px;
+        padding: 16px;
+      }
+
+      .toggle-panel h3 {
+        margin: 0 0 16px 0;
+        font-size: 16px;
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      .toggle-group {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .toggle-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 14px;
+        background: #0e1730;
+        border: 1px solid #1a2446;
+        border-radius: 10px;
+      }
+
+      .toggle-item.disabled {
+        opacity: 0.5;
+        pointer-events: none;
+      }
+
+      .toggle-label {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .toggle-label span {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text);
+      }
+
+      .toggle-label small {
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      .toggle-switch {
+        position: relative;
+        width: 52px;
+        height: 28px;
+        flex-shrink: 0;
+      }
+
+      .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #2b3b6b;
+        transition: 0.3s;
+        border-radius: 28px;
+      }
+
+      .toggle-slider:before {
+        position: absolute;
+        content: "";
+        height: 22px;
+        width: 22px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 0.3s;
+        border-radius: 50%;
+      }
+
+      .toggle-switch input:checked + .toggle-slider {
+        background-color: var(--green);
+      }
+
+      .toggle-switch input:checked + .toggle-slider:before {
+        transform: translateX(24px);
+      }
+
+      .toggle-switch.blue input:checked + .toggle-slider {
+        background-color: var(--blue);
+      }
+
+      .toggle-switch.orange input:checked + .toggle-slider {
+        background-color: var(--orange);
+      }
+
+      .toggle-switch.magenta input:checked + .toggle-slider {
+        background-color: var(--magenta);
+      }
+
+      /* Info panels */
+      .info-panel {
+        background: var(--panel);
+        border: 1px solid #1b2540;
+        border-radius: 12px;
+        padding: 16px;
+      }
+
+      .info-panel h3 {
+        margin: 0 0 12px 0;
+        font-size: 14px;
+        color: var(--muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+      }
+
+      .info-panel.hidden {
+        display: none;
+      }
+
+      /* Fall Detection Info */
+      .fall-info-grid {
+        display: grid;
+        gap: 8px;
+      }
+
+      .fall-info-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 10px;
+        background: #0e1730;
+        border: 1px solid #1a2446;
+        border-radius: 8px;
+        font-size: 13px;
+      }
+
+      .fall-info-item span:first-child {
+        color: var(--muted);
+      }
+
+      .fall-info-item span:last-child {
+        font-weight: 700;
+        color: var(--text);
+      }
+
+      .fall-status-badge {
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 12px;
+      }
+
+      .fall-status-badge.safe {
+        background: rgba(53, 208, 127, 0.15);
+        color: var(--green);
+        border: 1px solid rgba(53, 208, 127, 0.4);
+      }
+
+      .fall-status-badge.alert {
+        background: rgba(255, 71, 87, 0.15);
+        color: var(--red);
+        border: 1px solid rgba(255, 71, 87, 0.5);
+      }
+
+      .fall-status-badge.help {
+        background: rgba(245, 165, 36, 0.15);
+        color: var(--orange);
+        border: 1px solid rgba(245, 165, 36, 0.5);
+      }
+
+      .fall-status-badge.sleeping {
+        background: rgba(255, 106, 213, 0.15);
+        color: var(--magenta);
+        border: 1px solid rgba(255, 106, 213, 0.5);
+      }
+
+      /* ROI Panel */
+      .roi-panel {
+        background: var(--panel);
+        border: 1px solid #1b2540;
+        border-radius: 12px;
+        padding: 16px;
+      }
+
+      .roi-panel.hidden {
+        display: none;
+      }
+
+      .roi-panel h3 {
+        margin: 0 0 12px 0;
+        font-size: 14px;
+        color: var(--muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+      }
+
+      .roi-toolbar {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+      }
+
+      .roi-toolbar button {
+        padding: 8px 14px;
+        border-radius: 8px;
+        border: 1px solid #2b3b6b;
+        background: #15244a;
+        color: var(--text);
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 600;
+        transition: background 0.2s;
+      }
+
+      .roi-toolbar button:hover {
+        background: #1c2f5a;
+      }
+
+      .roi-toolbar button.primary {
+        background: var(--magenta);
+        border-color: var(--magenta);
+      }
+
+      .roi-toolbar button.primary:hover {
+        filter: brightness(1.1);
+      }
+
+      .roi-toolbar button.danger {
+        background: var(--red);
+        border-color: var(--red);
+      }
+
+      .roi-toolbar button.danger:hover {
+        filter: brightness(0.9);
+      }
+
+      .roi-toolbar button.hidden {
+        display: none;
+      }
+
+      .roi-hint {
+        font-size: 11px;
+        color: var(--muted);
+        line-height: 1.4;
+      }
+
+      .roi-status {
+        margin-top: 8px;
+        padding: 8px 10px;
+        background: #0e1730;
+        border: 1px solid #1a2446;
+        border-radius: 8px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .roi-status strong {
+        color: var(--magenta);
+      }
+
+      /* Rehab Medic Info */
+      .rehab-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .rehab-stat-card {
+        padding: 14px;
+        background: #0e1730;
+        border: 1px solid #1a2446;
+        border-radius: 10px;
+        text-align: center;
+      }
+
+      .rehab-stat-card.left {
+        border-left: 3px solid var(--orange);
+      }
+
+      .rehab-stat-card.right {
+        border-left: 3px solid var(--blue);
+      }
+
+      .rehab-stat-card h4 {
+        margin: 0 0 8px 0;
+        font-size: 12px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+      }
+
+      .rehab-stat-card .reps {
+        font-size: 36px;
+        font-weight: 800;
+        color: var(--text);
+        line-height: 1;
+      }
+
+      .rehab-stat-card .details {
+        margin-top: 10px;
+        font-size: 12px;
+        color: var(--muted);
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .rehab-stat-card .details strong {
+        color: var(--text);
+      }
+
+      .rehab-extra-info {
+        margin-top: 12px;
+        padding: 10px;
+        background: #0e1730;
+        border: 1px solid #1a2446;
+        border-radius: 8px;
+        font-size: 12px;
+        color: var(--muted);
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .rehab-extra-info strong {
+        color: var(--text);
+      }
+
+      /* Exercise Selector */
+      .exercise-selector {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+        padding: 10px 14px;
+        background: #0e1730;
+        border: 1px solid #1a2446;
+        border-radius: 10px;
+      }
+
+      .exercise-selector label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--muted);
+      }
+
+      .exercise-selector select {
+        flex: 1;
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid #2b3b6b;
+        background: #15244a;
+        color: var(--text);
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .exercise-selector select:focus {
+        outline: none;
+        border-color: var(--blue);
+      }
+
+      /* Form Accuracy Panel */
+      .form-accuracy-panel {
+        margin-bottom: 14px;
+        padding: 14px;
+        background: #0e1730;
+        border: 1px solid #1a2446;
+        border-radius: 10px;
+      }
+
+      .accuracy-display {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+
+      .accuracy-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+      }
+
+      .accuracy-value {
+        font-size: 24px;
+        font-weight: 800;
+        color: var(--green);
+      }
+
+      .accuracy-value.warning {
+        color: var(--orange);
+      }
+
+      .accuracy-value.poor {
+        color: var(--red);
+      }
+
+      .mean-error-display {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        font-size: 13px;
+      }
+
+      .error-label {
+        color: var(--muted);
+      }
+
+      .error-value {
+        font-weight: 700;
+        color: var(--text);
+      }
+
+      .accuracy-bar-container {
+        height: 6px;
+        background: #1a2446;
+        border-radius: 3px;
+        overflow: hidden;
+      }
+
+      .accuracy-bar {
+        height: 100%;
+        background: linear-gradient(90deg, var(--green), var(--green));
+        border-radius: 3px;
+        width: 0%;
+        transition: width 0.3s ease, background 0.3s ease;
+      }
+
+      .accuracy-bar.warning {
+        background: linear-gradient(90deg, var(--orange), var(--orange));
+      }
+
+      .accuracy-bar.poor {
+        background: linear-gradient(90deg, var(--red), var(--red));
+      }
+
+      /* Angles panel */
+      .angles-panel {
+        background: var(--panel);
+        border: 1px solid #1b2540;
+        border-radius: 12px;
+        padding: 16px;
+        margin-top: 16px;
+      }
+
+      .angles-panel.hidden {
+        display: none;
+      }
+
+      .angles-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .angle-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 10px;
+        background: #0e1730;
+        border: 1px solid #1a2446;
+        border-radius: 6px;
+        font-size: 12px;
+      }
+
+      .angle-item span:first-child {
+        color: var(--muted);
+      }
+
+      .angle-item span:last-child {
+        color: #ffd166;
+        font-weight: 700;
+      }
+
+      /* Loading state */
+      .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        z-index: 10;
+      }
+
+      .loading-overlay.hidden {
+        display: none;
+      }
+
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(255, 255, 255, 0.2);
+        border-top-color: var(--blue);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .status-text {
+        color: var(--muted);
+        font-size: 13px;
+        margin-top: 8px;
+        text-align: center;
+      }
+
+      /* Toast notification */
+      .toast {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        background: var(--red);
+        color: white;
+        font-weight: 800;
+        padding: 12px 16px;
+        border-radius: 10px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+        opacity: 0;
+        transform: translateY(10px);
+        transition: all 0.25s ease;
+        z-index: 1000;
+      }
+
+      .toast.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .toast.hidden {
+        display: none;
+      }
+
+      /* Generic hidden class */
+      .hidden {
+        display: none !important;
+      }
+
+      /* Rehab controls */
+      .rehab-controls {
+        margin-top: 12px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .rehab-controls button {
+        padding: 8px 14px;
+        border-radius: 8px;
+        border: 1px solid #2b3b6b;
+        background: #15244a;
+        color: var(--text);
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 600;
+        transition: background 0.2s;
+      }
+
+      .rehab-controls button:hover {
+        background: #1c2f5a;
+      }
+
+      .rehab-controls button.danger {
+        background: #ff4757;
+        border-color: #ff4757;
+      }
+
+      .rehab-controls button.danger:hover {
+        background: #e03e4d;
+      }
+
+      /* ========== REHAB MODE STYLES ========== */
+      .rehab-mode-hint {
+        font-size: 12px;
+        color: var(--muted);
+        margin: 0 0 12px 0;
+      }
+
+      .exercise-queue-container {
+        background: #0e1730;
+        border: 1px solid #1a2446;
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 12px;
+      }
+
+      .exercise-queue {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 12px;
+        max-height: 200px;
+        overflow-y: auto;
+      }
+
+      .exercise-queue:empty::after {
+        content: "Belum ada latihan. Tambahkan latihan di bawah.";
+        color: var(--muted);
+        font-size: 12px;
+        text-align: center;
+        padding: 20px;
+      }
+
+      .exercise-queue-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        background: #15244a;
+        border: 1px solid #2b3b6b;
+        border-radius: 8px;
+        font-size: 13px;
+      }
+
+      .exercise-queue-item .order-num {
+        width: 24px;
+        height: 24px;
+        background: var(--blue);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 12px;
+        flex-shrink: 0;
+      }
+
+      .exercise-queue-item .exercise-name {
+        flex: 1;
+        font-weight: 600;
+        color: var(--text);
+      }
+
+      .exercise-queue-item .exercise-reps {
+        color: var(--orange);
+        font-weight: 700;
+      }
+
+      .exercise-queue-item .move-btns {
+        display: flex;
+        gap: 4px;
+      }
+
+      .exercise-queue-item .move-btns button {
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        border: 1px solid #2b3b6b;
+        background: #0e1730;
+        color: var(--muted);
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .exercise-queue-item .move-btns button:hover {
+        background: #1c2f5a;
+        color: var(--text);
+      }
+
+      .exercise-queue-item .remove-btn {
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        border: 1px solid var(--red);
+        background: transparent;
+        color: var(--red);
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .exercise-queue-item .remove-btn:hover {
+        background: var(--red);
+        color: white;
+      }
+
+      .add-exercise-form {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .add-exercise-form select,
+      .add-exercise-form input {
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid #2b3b6b;
+        background: #15244a;
+        color: var(--text);
+        font-size: 13px;
+      }
+
+      .add-exercise-form select {
+        flex: 1;
+        min-width: 120px;
+      }
+
+      .add-exercise-form input {
+        width: 70px;
+      }
+
+      .add-exercise-form button.primary {
+        padding: 8px 14px;
+        border-radius: 8px;
+        border: 1px solid var(--blue);
+        background: var(--blue);
+        color: white;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .add-exercise-form button.primary:hover {
+        filter: brightness(1.1);
+      }
+
+      .rehab-mode-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .rehab-mode-actions button {
+        flex: 1;
+        padding: 10px 16px;
+        border-radius: 8px;
+        border: none;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .rehab-mode-actions button.success {
+        background: var(--green);
+        color: #000;
+      }
+
+      .rehab-mode-actions button.success:hover:not(:disabled) {
+        filter: brightness(1.1);
+      }
+
+      .rehab-mode-actions button.success:disabled {
+        background: #1a2446;
+        color: var(--muted);
+        cursor: not-allowed;
+      }
+
+      .rehab-mode-actions button.danger {
+        background: var(--red);
+        color: white;
+      }
+
+      .rehab-mode-actions button.danger:hover {
+        filter: brightness(0.9);
+      }
+
+      /* Rehab Mode Active Panel Styles */
+      .current-exercise-display {
+        background: linear-gradient(135deg, #1a2a55, #0e1730);
+        border: 2px solid var(--blue);
+        border-radius: 12px;
+        padding: 16px;
+        text-align: center;
+        margin-bottom: 12px;
+      }
+
+      .current-exercise-label {
+        font-size: 11px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 4px;
+      }
+
+      .current-exercise-name {
+        font-size: 24px;
+        font-weight: 800;
+        color: var(--text);
+        margin-bottom: 12px;
+      }
+
+      .current-exercise-progress {
+        display: flex;
+        justify-content: center;
+        gap: 24px;
+      }
+
+      .current-exercise-progress span {
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      .current-exercise-progress .progress-left strong {
+        color: var(--orange);
+        font-size: 18px;
+      }
+
+      .current-exercise-progress .progress-right strong {
+        color: var(--blue);
+        font-size: 18px;
+      }
+
+      .progress-queue {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 12px;
+        max-height: 150px;
+        overflow-y: auto;
+      }
+
+      .progress-queue-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px;
+        background: #0e1730;
+        border: 1px solid #1a2446;
+        border-radius: 8px;
+        font-size: 12px;
+      }
+
+      .progress-queue-item.current {
+        border-color: var(--blue);
+        background: #152544;
+      }
+
+      .progress-queue-item.completed {
+        border-color: var(--green);
+        opacity: 0.7;
+      }
+
+      .progress-queue-item .status-icon {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        flex-shrink: 0;
+      }
+
+      .progress-queue-item .status-icon.pending {
+        background: #1a2446;
+        color: var(--muted);
+      }
+
+      .progress-queue-item .status-icon.active {
+        background: var(--blue);
+        color: white;
+      }
+
+      .progress-queue-item .status-icon.done {
+        background: var(--green);
+        color: white;
+      }
+
+      .progress-queue-item .exercise-info {
+        flex: 1;
+      }
+
+      .progress-queue-item .exercise-info .name {
+        font-weight: 600;
+        color: var(--text);
+      }
+
+      .progress-queue-item .exercise-info .reps {
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      .rehab-mode-stats {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .rehab-stat-mini {
+        flex: 1;
+        padding: 10px;
+        background: #0e1730;
+        border: 1px solid #1a2446;
+        border-radius: 8px;
+        text-align: center;
+        font-size: 12px;
+      }
+
+      .rehab-stat-mini span {
+        display: block;
+        color: var(--muted);
+        margin-bottom: 4px;
+      }
+
+      .rehab-stat-mini strong {
+        font-size: 20px;
+        color: var(--text);
+      }
+
+      /* Rehab Mode Complete Panel */
+      .rehab-complete-message {
+        text-align: center;
+        padding: 20px;
+      }
+
+      .complete-icon {
+        font-size: 48px;
+        margin-bottom: 12px;
+      }
+
+      .rehab-complete-message h3 {
+        color: var(--green);
+        font-size: 24px;
+        margin: 0 0 8px 0;
+        text-transform: none;
+      }
+
+      .rehab-complete-message p {
+        color: var(--muted);
+        font-size: 14px;
+        margin: 0 0 16px 0;
+      }
+
+      .rehab-complete-stats {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 16px;
+        text-align: left;
+      }
+
+      .rehab-complete-stats .stat-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 12px;
+        background: #0e1730;
+        border-radius: 6px;
+        font-size: 13px;
+      }
+
+      .rehab-complete-stats .stat-item span:first-child {
+        color: var(--muted);
+      }
+
+      .rehab-complete-stats .stat-item span:last-child {
+        color: var(--green);
+        font-weight: 700;
+      }
+
+      #restart-rehab-btn {
+        padding: 12px 24px;
+        border-radius: 8px;
+        border: none;
+        background: var(--green);
+        color: #000;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      #restart-rehab-btn:hover {
+        filter: brightness(1.1);
+      }
+
+      /* Responsive */
+      @media (max-width: 600px) {
+        .integrated-container {
+          padding: 10px;
+          gap: 12px;
+        }
+
+        .rehab-stats {
+          grid-template-columns: 1fr;
+        }
+
+        .angles-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* ========== HEADER ENHANCEMENTS ========== */
+      header {
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .header-center {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .status-indicators {
+        display: flex;
+        gap: 8px;
+      }
+
+      .indicator-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: #0e1730;
+        border: 1px solid #1a2446;
+        border-radius: 8px;
+        font-size: 12px;
+      }
+
+      .indicator-icon {
+        font-size: 14px;
+      }
+
+      .indicator-label {
+        color: var(--muted);
+        font-weight: 500;
+      }
+
+      .indicator-status {
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-weight: 700;
+        font-size: 10px;
+        text-transform: uppercase;
+      }
+
+      .indicator-status.on {
+        background: rgba(53, 208, 127, 0.2);
+        color: var(--green);
+        border: 1px solid rgba(53, 208, 127, 0.4);
+      }
+
+      .indicator-status.off {
+        background: rgba(255, 71, 87, 0.15);
+        color: var(--red);
+        border: 1px solid rgba(255, 71, 87, 0.3);
+      }
+
+      .indicator-status.standby {
+        background: rgba(255, 193, 7, 0.15);
+        color: #ffc107;
+        border: 1px solid rgba(255, 193, 7, 0.4);
+      }
+
+      .credits-btn {
+        padding: 6px 12px;
+        background: #15244a;
+        border: 1px solid #2b3b6b;
+        border-radius: 8px;
+        color: var(--text);
+        text-decoration: none;
+        font-size: 16px;
+        transition: all 0.2s;
+      }
+
+      .credits-btn:hover {
+        background: #1c2f5a;
+        border-color: var(--blue);
+      }
+
+      .user-profile {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 8px 4px 4px;
+        background: #15244a;
+        border: 1px solid #2b3b6b;
+        border-radius: 24px;
+      }
+
+      .user-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      .user-name {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text);
+        max-width: 100px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .logout-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        padding: 4px;
+        opacity: 0.7;
+        transition: opacity 0.2s;
+      }
+
+      .logout-btn:hover {
+        opacity: 1;
+      }
+
+      .guest-badge {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: rgba(245, 165, 36, 0.15);
+        border: 1px solid rgba(245, 165, 36, 0.3);
+        border-radius: 8px;
+        font-size: 12px;
+        color: var(--orange);
+        font-weight: 600;
+      }
+
+      .icon-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        padding: 4px;
+        opacity: 0.7;
+        transition: opacity 0.2s;
+        color: inherit;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .icon-btn:hover {
+        opacity: 1;
+      }
+
+      /* ========== HAMBURGER MENU ========== */
+      .hamburger-menu {
+        position: relative;
+        margin: 0 12px;
+      }
+
+      #hamburger-btn {
+        font-size: 20px;
+        padding: 8px 12px;
+        background: var(--panel);
+        border: 1px solid #1b2540;
+        border-radius: 8px;
+        color: var(--text);
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      #hamburger-btn:hover {
+        background: #1c2f5a;
+        border-color: var(--blue);
+      }
+
+      .dropdown-menu {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        background: var(--panel);
+        border: 1px solid #1b2540;
+        border-radius: 12px;
+        min-width: 250px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        z-index: 1000;
+      }
+
+      .dropdown-menu.hidden {
+        display: none;
+      }
+
+      .dropdown-section {
+        padding: 12px;
+      }
+
+      .dropdown-header {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted);
+        text-transform: uppercase;
+        margin-bottom: 8px;
+      }
+
+      .camera-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .camera-item {
+        padding: 10px 12px;
+        background: #0e1730;
+        border: 1px solid #1a2446;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+      }
+
+      .camera-item:hover {
+        background: #15244a;
+        border-color: var(--blue);
+      }
+
+      .camera-item.active {
+        background: var(--blue);
+        border-color: var(--blue);
+        color: #000;
+        font-weight: 600;
+      }
+
+      .dropdown-divider {
+        margin: 0;
+        border: none;
+        border-top: 1px solid #1a2446;
+      }
+
+      .dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        color: var(--text);
+        text-decoration: none;
+        font-size: 14px;
+        transition: all 0.2s;
+      }
+
+      .dropdown-item:hover {
+        background: #0e1730;
+      }
+
+      @media (max-width: 900px) {
+        .status-indicators {
+          display: none;
+        }
+
+        .user-name {
+          display: none;
+        }
+      }
+
+      /* ========== ENLARGED REHAB MODE STATS ========== */
+      .rehab-mode-active-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+
+      .rehab-active-stat-card {
+        padding: 20px;
+        background: linear-gradient(135deg, #0e1730 0%, #15244a 100%);
+        border: 2px solid #2b3b6b;
+        border-radius: 16px;
+        text-align: center;
+      }
+
+      .rehab-active-stat-card.left {
+        border-color: var(--orange);
+        background: linear-gradient(
+          135deg,
+          rgba(245, 165, 36, 0.05) 0%,
+          rgba(245, 165, 36, 0.1) 100%
+        );
+      }
+
+      .rehab-active-stat-card.right {
+        border-color: var(--blue);
+        background: linear-gradient(
+          135deg,
+          rgba(45, 140, 255, 0.05) 0%,
+          rgba(45, 140, 255, 0.1) 100%
+        );
+      }
+
+      .rehab-active-stat-card h4 {
+        margin: 0 0 8px 0;
+        font-size: 12px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .rehab-active-stat-card .big-reps {
+        font-size: 64px;
+        font-weight: 900;
+        color: var(--text);
+        line-height: 1;
+        text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      }
+
+      .rehab-active-stat-card.left .big-reps {
+        color: var(--orange);
+      }
+
+      .rehab-active-stat-card.right .big-reps {
+        color: var(--blue);
+      }
+
+      .rehab-active-stat-card .target-text {
+        font-size: 14px;
+        color: var(--muted);
+        margin-top: 8px;
+      }
+
+      .rehab-active-stat-card .target-text strong {
+        color: var(--text);
+      }
+
+      /* ========== CALIBRATION MODAL ========== */
+      .calibration-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.85);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+        padding: 20px;
+      }
+
+      .calibration-modal.hidden {
+        display: none;
+      }
+
+      .calibration-content {
+        background: var(--panel);
+        border: 1px solid #2b3b6b;
+        border-radius: 20px;
+        padding: 32px;
+        max-width: 500px;
+        width: 100%;
+        text-align: center;
+      }
+
+      .calibration-icon {
+        font-size: 64px;
+        margin-bottom: 20px;
+      }
+
+      .calibration-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text);
+        margin: 0 0 12px 0;
+      }
+
+      .calibration-description {
+        font-size: 14px;
+        color: var(--muted);
+        line-height: 1.6;
+        margin: 0 0 24px 0;
+      }
+
+      .calibration-status {
+        padding: 16px;
+        background: #0e1730;
+        border: 2px solid #1a2446;
+        border-radius: 12px;
+        margin-bottom: 24px;
+      }
+
+      .calibration-status.detecting {
+        border-color: var(--orange);
+        background: rgba(245, 165, 36, 0.1);
+      }
+
+      .calibration-status.ready {
+        border-color: var(--green);
+        background: rgba(53, 208, 127, 0.1);
+      }
+
+      .calibration-status-icon {
+        font-size: 32px;
+        margin-bottom: 8px;
+      }
+
+      .calibration-status-text {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text);
+      }
+
+      .calibration-instructions {
+        text-align: left;
+        padding: 16px;
+        background: #0e1730;
+        border-radius: 12px;
+        margin-bottom: 24px;
+      }
+
+      .calibration-instructions h4 {
+        font-size: 13px;
+        color: var(--muted);
+        margin: 0 0 12px 0;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+
+      .calibration-instructions ul {
+        margin: 0;
+        padding: 0 0 0 20px;
+        font-size: 13px;
+        color: var(--text);
+        line-height: 1.8;
+      }
+
+      .calibration-buttons {
+        display: flex;
+        gap: 12px;
+      }
+
+      .calibration-btn {
+        flex: 1;
+        padding: 14px 24px;
+        border-radius: 12px;
+        border: none;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .calibration-btn.primary {
+        background: var(--green);
+        color: #000;
+      }
+
+      .calibration-btn.primary:hover:not(:disabled) {
+        filter: brightness(1.1);
+      }
+
+      .calibration-btn.primary:disabled {
+        background: #1a2446;
+        color: var(--muted);
+        cursor: not-allowed;
+      }
+
+      .calibration-btn.secondary {
+        background: transparent;
+        border: 2px solid #2b3b6b;
+        color: var(--text);
+      }
+
+      .calibration-btn.secondary:hover {
+        background: #15244a;
+      }
+
+      /* ========== DATA STORAGE INDICATOR ========== */
+      .storage-indicator {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background: #0e1730;
+        border: 1px solid #1a2446;
+        border-radius: 8px;
+        font-size: 12px;
+        margin-bottom: 12px;
+      }
+
+      .storage-indicator.guest {
+        background: rgba(245, 165, 36, 0.1);
+        border-color: rgba(245, 165, 36, 0.3);
+        color: var(--orange);
+      }
+
+      .storage-indicator.firebase {
+        background: rgba(53, 208, 127, 0.1);
+        border-color: rgba(53, 208, 127, 0.3);
+        color: var(--green);
+      }
+
+      .storage-indicator-icon {
+        font-size: 14px;
+      }
+
+      /* ========== REHAB HISTORY PANEL ========== */
+      .history-panel {
+        background: var(--panel);
+        border: 1px solid #1b2540;
+        border-radius: 12px;
+        padding: 16px;
+        margin-top: 16px;
+      }
+
+      .history-panel.hidden {
+        display: none;
+      }
+
+      .history-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      .history-header h3 {
+        margin: 0;
+        font-size: 14px;
+        color: var(--muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+      }
+
+      .history-refresh-btn {
+        padding: 6px 10px;
+        border-radius: 6px;
+        border: 1px solid #2b3b6b;
+        background: #15244a;
+        color: var(--text);
+        cursor: pointer;
+        font-size: 12px;
+        transition: background 0.2s;
+      }
+
+      .history-refresh-btn:hover {
+        background: #1c2f5a;
+      }
+
+      .history-guest-warning {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        background: rgba(245, 165, 36, 0.1);
+        border: 1px solid rgba(245, 165, 36, 0.3);
+        border-radius: 8px;
+        margin-bottom: 12px;
+        font-size: 12px;
+        color: var(--orange);
+      }
+
+      .history-guest-warning.hidden {
+        display: none;
+      }
+
+      .history-guest-warning-text {
+        flex: 1;
+      }
+
+      .history-login-btn {
+        padding: 4px 10px;
+        border-radius: 6px;
+        border: 1px solid var(--orange);
+        background: transparent;
+        color: var(--orange);
+        cursor: pointer;
+        font-size: 11px;
+        font-weight: 600;
+        white-space: nowrap;
+        transition: all 0.2s;
+      }
+
+      .history-login-btn:hover {
+        background: var(--orange);
+        color: #000;
+      }
+
+      .history-loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+      }
+
+      .history-loading.hidden {
+        display: none;
+      }
+
+      .history-spinner {
+        width: 24px;
+        height: 24px;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        border-top-color: var(--blue);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      .history-empty {
+        text-align: center;
+        padding: 24px 16px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .history-empty.hidden {
+        display: none;
+      }
+
+      .history-empty-icon {
+        font-size: 32px;
+        margin-bottom: 8px;
+      }
+
+      .history-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-height: 400px;
+        overflow-y: auto;
+      }
+
+      .history-item {
+        background: #0e1730;
+        border: 1px solid #1a2446;
+        border-radius: 10px;
+        padding: 12px;
+      }
+
+      .history-item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 8px;
+      }
+
+      .history-item-date {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .history-item-delete {
+        padding: 4px 8px;
+        border-radius: 4px;
+        border: 1px solid rgba(255, 71, 87, 0.3);
+        background: transparent;
+        color: var(--red);
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s;
+      }
+
+      .history-item-delete:hover {
+        background: var(--red);
+        color: white;
+        border-color: var(--red);
+      }
+
+      .history-item-exercises {
+        font-size: 13px;
+        color: var(--text);
+        font-weight: 600;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+      }
+
+      .history-item-stats {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .history-item-stat {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .history-item-stat strong {
+        color: var(--text);
+      }
+
+      .history-load-more {
+        margin-top: 12px;
+        width: 100%;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid #2b3b6b;
+        background: #15244a;
+        color: var(--text);
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        transition: background 0.2s;
+      }
+
+      .history-load-more:hover {
+        background: #1c2f5a;
+      }
+
+      .history-load-more.hidden {
+        display: none;
+      }
+
+      .history-load-more:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>SPYDER</h1>
+      <div class="header-center">
+        <div class="status-indicators">
+          <div
+            class="indicator-item"
+            id="telegram-indicator"
+            title="Status Telegram Bot"
+          >
+            <span class="indicator-icon">📱</span>
+            <span class="indicator-label">Telegram</span>
+            <span class="indicator-status off" id="telegram-status">OFF</span>
+          </div>
+          <div
+            class="indicator-item"
+            id="bardi-indicator"
+            title="Status Bardi Smart Device"
+          >
+            <span class="indicator-icon">🏠</span>
+            <span class="indicator-label">Bardi</span>
+            <span class="indicator-status off" id="bardi-status">OFF</span>
+          </div>
+          <div id="status-badge" class="status safe">SAFE</div>
+        </div>
+      </div>
+      <div class="right">
+        <div id="user-profile" class="user-profile hidden">
+          <img id="user-avatar" class="user-avatar" src="" alt="User" />
+          <span id="user-name" class="user-name"></span>
+          <button id="logout-btn" class="logout-btn icon-btn" title="Logout">
+            🚪
+          </button>
+        </div>
+        <div id="guest-badge" class="guest-badge hidden">
+          <span>👤 Tamu</span>
+          <a href="login.html" class="icon-btn" title="Login">🔐</a>
+        </div>
+        <div class="hamburger-menu">
+          <button id="hamburger-btn" class="icon-btn" title="Menu">☰</button>
+          <div id="hamburger-dropdown" class="dropdown-menu hidden">
+            <div class="dropdown-section">
+              <div class="dropdown-header">📹 Pilih Kamera</div>
+              <div id="camera-list" class="camera-list">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+            <hr class="dropdown-divider" />
+            <a href="credits.html" class="dropdown-item">
+              <span>ℹ️</span>
+              <span>About Us</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="integrated-container">
+      <!-- Camera Section (Left) -->
+      <div class="camera-section">
+        <div class="camera-container" id="camera-container">
+          <!-- Placeholder shown when camera is off -->
+          <div class="camera-placeholder" id="camera-placeholder">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path
+                d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+              />
+            </svg>
+            <span>Kamera tidak aktif</span>
+            <small>Aktifkan switch kamera untuk memulai</small>
+          </div>
+
+          <!-- Video and Canvas (hidden until camera is on) -->
+          <video
+            id="video"
+            playsinline
+            autoplay
+            muted
+            style="display: none"
+          ></video>
+          <canvas id="overlay" style="display: none"></canvas>
+          <canvas id="roi-canvas" style="display: none"></canvas>
+
+          <!-- Loading overlay -->
+          <div class="loading-overlay hidden" id="loading-overlay">
+            <div class="loading-spinner"></div>
+          </div>
+        </div>
+        <div class="status-text" id="status-text">Kamera belum aktif</div>
+      </div>
+
+      <!-- Controls Section (Right) -->
+      <div class="controls-section">
+        <!-- Toggle Switches -->
+        <div class="toggle-panel">
+          <h3>Kontrol Fitur</h3>
+          <div class="toggle-group">
+            <!-- Camera Toggle -->
+            <div class="toggle-item">
+              <div class="toggle-label">
+                <span>Kamera</span>
+                <small>Aktifkan kamera untuk deteksi</small>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="toggle-camera" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <!-- Fall Detection Toggle -->
+            <div class="toggle-item disabled" id="fall-toggle-item">
+              <div class="toggle-label">
+                <span>Fall Detection</span>
+                <small>Deteksi jatuh & gesture bantuan</small>
+              </div>
+              <label class="toggle-switch blue">
+                <input type="checkbox" id="toggle-fall" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <!-- Rehab Medic Toggle -->
+            <div class="toggle-item disabled" id="rehab-toggle-item">
+              <div class="toggle-label">
+                <span>Rehab Medic</span>
+                <small>7 latihan rehabilitasi + Rehab Mode</small>
+              </div>
+              <label class="toggle-switch orange">
+                <input type="checkbox" id="toggle-rehab" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- ROI Panel for Sleeping Detection -->
+        <div class="roi-panel hidden" id="roi-panel">
+          <h3>Sleeping ROI (Area Kasur)</h3>
+          <div class="roi-toolbar">
+            <button id="roi-edit" type="button">Edit ROI</button>
+            <button id="roi-save" type="button" class="primary hidden">
+              Save ROI
+            </button>
+            <button id="roi-cancel" type="button" class="hidden">Cancel</button>
+            <button id="roi-delete" type="button" class="danger">
+              Delete ROI
+            </button>
+          </div>
+          <p class="roi-hint">
+            Klik-drag di video untuk menggambar area kasur. Drag sudut untuk
+            resize, Shift+drag untuk rotate. ROI ini digunakan untuk deteksi
+            sleeping.
+          </p>
+          <div class="roi-status" id="roi-status">
+            Status: <strong id="roi-status-text">Tidak ada ROI</strong>
+          </div>
+        </div>
+
+        <!-- Fall Detection Info Panel -->
+        <div class="info-panel hidden" id="fall-info-panel">
+          <h3>Fall Detection Status</h3>
+          <div class="fall-info-grid">
+            <div class="fall-info-item">
+              <span>Status</span>
+              <span class="fall-status-badge safe" id="fall-status">SAFE</span>
+            </div>
+            <div class="fall-info-item">
+              <span>Fall Confidence</span>
+              <span id="fall-confidence">0%</span>
+            </div>
+            <div class="fall-info-item">
+              <span>Help Gesture</span>
+              <span id="help-gesture">OFF</span>
+            </div>
+            <div class="fall-info-item">
+              <span>Sleeping</span>
+              <span id="sleeping-status">OFF</span>
+            </div>
+            <div class="fall-info-item">
+              <span>Timer</span>
+              <span id="fall-timer">0s</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rehab Medic Info Panel -->
+        <div class="info-panel hidden" id="rehab-info-panel">
+          <!-- Exercise Selector -->
+          <div class="exercise-selector">
+            <label for="exercise-select">Pilih Latihan:</label>
+            <select id="exercise-select">
+              <option value="bicep_curls">1. Bicep Curl</option>
+              <option value="knee_extension">2. Knee Extension</option>
+              <option value="front_raise">3. Front Raise</option>
+              <option value="shoulder_flexion">4. Shoulder Flexion</option>
+              <option value="sit_to_stand">5. Sit to Stand</option>
+              <option value="shoulder_abduction">6. Shoulder Abduction</option>
+              <option value="hip_abduction">7. Hip Abduction</option>
+              <option value="rehab_mode">🏥 Rehab Mode (Program)</option>
+            </select>
+          </div>
+
+          <!-- Standard Exercise Display (shown when not in rehab mode) -->
+          <div id="standard-exercise-panel">
+            <h3 id="exercise-title">Bicep Curl</h3>
+
+            <!-- Form Accuracy Display -->
+            <div class="form-accuracy-panel" id="form-accuracy-panel">
+              <div class="accuracy-display">
+                <span class="accuracy-label">Form Accuracy</span>
+                <span class="accuracy-value" id="accuracy-value">-</span>
+              </div>
+              <div class="mean-error-display">
+                <span class="error-label">Mean Error:</span>
+                <span class="error-value" id="mean-error-value">-</span>
+              </div>
+              <div class="accuracy-bar-container">
+                <div class="accuracy-bar" id="accuracy-bar"></div>
+              </div>
+            </div>
+
+            <div class="rehab-stats">
+              <div class="rehab-stat-card left">
+                <h4 id="stat-label-left">Tangan Kiri</h4>
+                <div class="reps" id="reps-left">0</div>
+                <div class="details">
+                  <span>Stage: <strong id="stage-left">-</strong></span>
+                  <span>Angle: <strong id="angle-left">-</strong>°</span>
+                </div>
+              </div>
+              <div class="rehab-stat-card right">
+                <h4 id="stat-label-right">Tangan Kanan</h4>
+                <div class="reps" id="reps-right">0</div>
+                <div class="details">
+                  <span>Stage: <strong id="stage-right">-</strong></span>
+                  <span>Angle: <strong id="angle-right">-</strong>°</span>
+                </div>
+              </div>
+            </div>
+            <div class="rehab-extra-info">
+              <span>FPS: <strong id="fps-display">-</strong></span>
+              <span>Pose: <strong id="pose-status">-</strong></span>
+            </div>
+            <div class="rehab-controls">
+              <button id="reset-counter" class="danger">Reset Counter</button>
+            </div>
+          </div>
+
+          <!-- Rehab Mode Setup Panel (shown when rehab_mode is selected) -->
+          <div id="rehab-mode-setup" class="hidden">
+            <h3>🎯 Rehab Mode - Setup</h3>
+            <p class="rehab-mode-hint">
+              Tambahkan latihan dan atur urutan serta repetisi.
+            </p>
+
+            <!-- Exercise Queue -->
+            <div class="exercise-queue-container">
+              <div class="exercise-queue" id="exercise-queue">
+                <!-- Exercise items will be added here dynamically -->
+              </div>
+
+              <!-- Add Exercise Form -->
+              <div class="add-exercise-form">
+                <select id="add-exercise-type">
+                  <option value="bicep_curls">Bicep Curl</option>
+                  <option value="knee_extension">Knee Extension</option>
+                  <option value="front_raise">Front Raise</option>
+                  <option value="shoulder_flexion">Shoulder Flexion</option>
+                  <option value="sit_to_stand">Sit to Stand</option>
+                  <option value="shoulder_abduction">Shoulder Abduction</option>
+                  <option value="hip_abduction">Hip Abduction</option>
+                </select>
+                <input
+                  type="number"
+                  id="add-exercise-reps"
+                  min="1"
+                  max="100"
+                  value="10"
+                  placeholder="Reps"
+                />
+                <button id="add-exercise-btn" class="primary">+ Tambah</button>
+              </div>
+            </div>
+
+            <div class="rehab-mode-actions">
+              <button id="start-rehab-btn" class="success" disabled>
+                ▶ Mulai Rehab
+              </button>
+              <button id="clear-queue-btn" class="danger">Hapus Semua</button>
+            </div>
+          </div>
+
+          <!-- Rehab Mode Active Panel (shown when rehab workout is in progress) -->
+          <div id="rehab-mode-active" class="hidden">
+            <h3>🎯 Rehab Mode - Aktif</h3>
+
+            <!-- Storage Indicator -->
+            <div class="storage-indicator guest" id="storage-indicator-active">
+              <span class="storage-indicator-icon">⚠️</span>
+              <span>Data disimpan sementara (mode tamu)</span>
+            </div>
+
+            <!-- Current Exercise Display -->
+            <div class="current-exercise-display">
+              <div class="current-exercise-label">Latihan Saat Ini:</div>
+              <div class="current-exercise-name" id="current-exercise-name">
+                -
+              </div>
+            </div>
+
+            <!-- ENLARGED Rehab Mode Stats -->
+            <div class="rehab-mode-active-stats">
+              <div class="rehab-active-stat-card left">
+                <h4>Kiri</h4>
+                <div class="big-reps" id="rehab-big-left">0</div>
+                <div class="target-text">
+                  dari <strong id="rehab-target-left-big">0</strong> reps
+                </div>
+              </div>
+              <div class="rehab-active-stat-card right">
+                <h4>Kanan</h4>
+                <div class="big-reps" id="rehab-big-right">0</div>
+                <div class="target-text">
+                  dari <strong id="rehab-target-right-big">0</strong> reps
+                </div>
+              </div>
+            </div>
+
+            <!-- Small progress display (keep original for compatibility) -->
+            <div
+              class="current-exercise-progress hidden"
+              id="current-exercise-progress"
+            >
+              <span class="progress-left"
+                >Kiri: <strong id="rehab-progress-left">0</strong>/<span
+                  id="rehab-target-left"
+                  >0</span
+                ></span
+              >
+              <span class="progress-right"
+                >Kanan: <strong id="rehab-progress-right">0</strong>/<span
+                  id="rehab-target-right"
+                  >0</span
+                ></span
+              >
+            </div>
+
+            <!-- Progress Queue -->
+            <div class="progress-queue" id="progress-queue">
+              <!-- Exercise progress items will be shown here -->
+            </div>
+
+            <!-- Rehab Mode Stats -->
+            <div class="rehab-mode-stats">
+              <div class="rehab-stat-mini">
+                <span>Total Latihan:</span>
+                <strong id="rehab-total-exercises">0</strong>
+              </div>
+              <div class="rehab-stat-mini">
+                <span>Selesai:</span>
+                <strong id="rehab-completed-exercises">0</strong>
+              </div>
+            </div>
+
+            <div class="rehab-extra-info">
+              <span>FPS: <strong id="fps-display-rehab">-</strong></span>
+              <span>Pose: <strong id="pose-status-rehab">-</strong></span>
+            </div>
+
+            <div class="rehab-mode-actions">
+              <button id="reset-rehab-btn" class="danger">Reset Rehab</button>
+            </div>
+          </div>
+
+          <!-- Rehab Mode Complete Panel -->
+          <div id="rehab-mode-complete" class="hidden">
+            <div class="rehab-complete-message">
+              <div class="complete-icon">🎉</div>
+              <h3>Rehab Selesai!</h3>
+              <p>Semua latihan telah selesai. Kerja bagus!</p>
+              <div class="rehab-complete-stats" id="rehab-complete-stats">
+                <!-- Stats will be populated here -->
+              </div>
+              <button id="restart-rehab-btn" class="success">
+                🔄 Mulai Ulang
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Joint Angles Panel (shown when any detection is active) -->
+        <div class="angles-panel hidden" id="angles-panel">
+          <h3>Joint Angles</h3>
+          <div class="angles-grid" id="angles-grid">
+            <div class="angle-item">
+              <span>L. Elbow</span><span id="ang-left-elbow">0°</span>
+            </div>
+            <div class="angle-item">
+              <span>R. Elbow</span><span id="ang-right-elbow">0°</span>
+            </div>
+            <div class="angle-item">
+              <span>L. Shoulder</span><span id="ang-left-shoulder">0°</span>
+            </div>
+            <div class="angle-item">
+              <span>R. Shoulder</span><span id="ang-right-shoulder">0°</span>
+            </div>
+            <div class="angle-item">
+              <span>L. Hip</span><span id="ang-left-hip">0°</span>
+            </div>
+            <div class="angle-item">
+              <span>R. Hip</span><span id="ang-right-hip">0°</span>
+            </div>
+            <div class="angle-item">
+              <span>L. Knee</span><span id="ang-left-knee">0°</span>
+            </div>
+            <div class="angle-item">
+              <span>R. Knee</span><span id="ang-right-knee">0°</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rehab History Panel -->
+        <div class="history-panel hidden" id="history-panel">
+          <div class="history-header">
+            <h3>📋 Riwayat Latihan</h3>
+            <button
+              class="history-refresh-btn"
+              id="history-refresh-btn"
+              title="Refresh"
+            >
+              🔄
+            </button>
+          </div>
+
+          <!-- Guest Warning -->
+          <div class="history-guest-warning hidden" id="history-guest-warning">
+            <span>⚠️</span>
+            <span class="history-guest-warning-text"
+              >Data hanya disimpan sementara di browser</span
+            >
+            <button class="history-login-btn" id="history-login-btn">
+              Login
+            </button>
+          </div>
+
+          <!-- Loading State -->
+          <div class="history-loading hidden" id="history-loading">
+            <div class="history-spinner"></div>
+          </div>
+
+          <!-- Empty State -->
+          <div class="history-empty hidden" id="history-empty">
+            <div class="history-empty-icon">📭</div>
+            <p>Belum ada riwayat latihan</p>
+          </div>
+
+          <!-- History List -->
+          <div class="history-list" id="history-list">
+            <!-- History items will be rendered here -->
+          </div>
+
+          <!-- Load More Button (Firestore only) -->
+          <button class="history-load-more hidden" id="history-load-more">
+            Muat Lebih Banyak
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast notification -->
+    <div id="toast" class="toast hidden">ALERT!</div>
+
+    <!-- Audio for alerts -->
+    <audio id="alert-sound">
+      <source
+        src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABYAaW5mbyAAAAA="
+        type="audio/wav"
+      />
+    </audio>
+
+    <!-- Camera Calibration Modal -->
+    <div id="calibration-modal" class="calibration-modal hidden">
+      <div class="calibration-content">
+        <div class="calibration-icon">📷</div>
+        <h2 class="calibration-title">Kalibrasi Kamera</h2>
+        <p class="calibration-description">
+          Pastikan posisi tubuh Anda terdeteksi dengan baik sebelum memulai
+          latihan. Semua titik tulang harus terlihat di kamera.
+        </p>
+
+        <div class="calibration-status detecting" id="calibration-status">
+          <div class="calibration-status-icon" id="calibration-status-icon">
+            ⏳
+          </div>
+          <div class="calibration-status-text" id="calibration-status-text">
+            Mendeteksi pose...
+          </div>
+        </div>
+
+        <div class="calibration-instructions">
+          <h4>Petunjuk Kalibrasi:</h4>
+          <ul>
+            <li>Berdiri atau duduk menghadap kamera</li>
+            <li>Pastikan seluruh tubuh terlihat (kepala hingga kaki)</li>
+            <li>Jaga jarak 1-2 meter dari kamera</li>
+            <li>Pastikan pencahayaan cukup</li>
+            <li>Hindari latar belakang yang terlalu ramai</li>
+          </ul>
+        </div>
+
+        <div class="calibration-buttons">
+          <button id="calibration-skip-btn" class="calibration-btn secondary">
+            Lewati
+          </button>
+          <button
+            id="calibration-confirm-btn"
+            class="calibration-btn primary"
+            disabled
+          >
+            ✓ Sudah Sesuai Kalibrasi
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Config globals - Cloudflare Worker (Serverless!) -->
+    <script>
+      // Set Cloudflare Worker URLs and Configuration
+      window.BACKEND_BASE = "https://tuya-proxy.labhcmlt9-cf7.workers.dev";
+      window.TUYA_DEVICE_ID = "a330d051018bae1bedcfmc";
+      window.WEB_API_KEY = "";
+
+      // Telegram Configuration (hardcoded untuk immediate availability)
+      window.TELEGRAM_CONFIG = {
+        enabled: true,
+        proxyUrl: "https://telegram-proxy.labhcmlt9-cf7.workers.dev/",
+        chatId: "6376208495",
+        cooldownS: 60,
+      };
+
+      console.log("[Config] 🚀 Cloudflare Worker URLs set:", {
+        backend: window.BACKEND_BASE,
+        telegram: window.TELEGRAM_CONFIG.proxyUrl,
+        tuyaDevice: window.TUYA_DEVICE_ID,
+      });
+    </script>
+
+    <script type="module">
+      import { loadConfig, initWindowGlobals } from "./config.js";
+      import {
+        onAuthStateChanged,
+        getAuth,
+      } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+
+      // Check authentication on page load
+      (async () => {
+        // Check if in guest mode
+        const isGuestMode = localStorage.getItem("guestMode") === "true";
+
+        if (isGuestMode) {
+          console.log("[Auth] 👤 Guest mode enabled");
+          // Guest mode allowed, skip Firebase auth check
+        } else {
+          // Initialize Firebase for authenticated users
+          const firebaseConfig = {
+            apiKey: "AIzaSyAyl5uUUlf7LSqCePTwQSe2j_lqv17iXiM",
+            authDomain: "aipakdhoto.firebaseapp.com",
+            projectId: "aipakdhoto",
+            storageBucket: "aipakdhoto.firebasestorage.app",
+            messagingSenderId: "542499206190",
+            appId: "1:542499206190:web:ad01bb9604f67880371bbf",
+            measurementId: "G-W023RF9TBV",
+          };
+
+          const app = initializeApp(firebaseConfig);
+          const auth = getAuth(app);
+
+          // Check if user is logged in
+          onAuthStateChanged(auth, (user) => {
+            if (!user) {
+              // Not logged in and not guest mode, redirect to login page
+              console.log(
+                "[Auth] ❌ No user logged in, redirecting to login..."
+              );
+              window.location.href = "login.html";
+            } else {
+              console.log("[Auth] ✅ User authenticated:", user.email);
+            }
+          });
+        }
+
+        // Load configuration from worker (will merge with window config)
+        try {
+          await loadConfig();
+          initWindowGlobals();
+          console.log("[App] ✅ Configuration loaded from Cloudflare Worker");
+        } catch (error) {
+          console.error("[App] ⚠️  Config load failed, using fallback:", error);
+          // Fallback already set in window globals above
+        }
+      })();
+    </script>
+
+    <!-- Include client bridge -->
+    <script type="module" src="./client/alarm_bridge.js"></script>
+
+    <!-- Main integrated app script -->
+    <script type="module" src="./integrated.js"></script>
+  </body>
+</html>
