@@ -2479,7 +2479,7 @@
           let authCheckComplete = false;
           onAuthStateChanged(auth, (user) => {
             if (authCheckComplete) return; // Prevent multiple redirects
-            
+
             if (!user) {
               // Not logged in and not guest mode, redirect to login page
               console.log(
