@@ -30,9 +30,9 @@ Dosen Pengampu: Sritrusta Sukaridhoto, ST., Ph.D.
 
 ## 🎬 Demo
 
-- **Live Demo:** https://mediapipefallandhelpdetection.netlify.app
+- **Live Demo:** https://spydermediapipe.netlify.app
 - **Demo Video:** https://youtu.be/dThCuthprNU  
-  _(Trigger siren Bardi saat jatuh)_
+  *(Trigger siren Bardi saat jatuh)*
 
 ---
 
