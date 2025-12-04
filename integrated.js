@@ -1993,20 +1993,14 @@ async function sendTelegram(text) {
   if (!TELEGRAM.enabled) return false;
   // No chatId validation - broadcast mode to all subscribers
   try {
-    if (TELEGRAM.mode === "proxy") {
-      if (!TELEGRAM.proxyUrl) return false;
-      const resp = await fetch(TELEGRAM.proxyUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }), // Only send text, broadcast to all subscribers
-      });
-      return resp.ok;
-    } else {
-      // Fallback mode not used in broadcast setup
-      if (!TELEGRAM.botToken) return false;
-      console.warn("[Telegram] Direct mode not supported in broadcast setup");
-      return false;
-    }
+    // Only proxy mode is supported in broadcast setup
+    if (!TELEGRAM.proxyUrl) return false;
+    const resp = await fetch(TELEGRAM.proxyUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }), // Only send text, broadcast to all subscribers
+    });
+    return resp.ok;
   } catch {
     return false;
   }
