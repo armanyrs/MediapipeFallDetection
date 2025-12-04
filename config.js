@@ -33,7 +33,7 @@ export async function loadConfig() {
     config = {
       TUYA_DEVICE_ID: "",
       TELEGRAM_BOT_URL: "",
-      TELEGRAM_CHAT_ID: "",
+      // TELEGRAM_CHAT_ID removed - broadcast mode to all subscribers
       TELEGRAM_ENABLED: false,
       TELEGRAM_COOLDOWN_SECONDS: 60,
       BACKEND_BASE: window.BACKEND_BASE || "",

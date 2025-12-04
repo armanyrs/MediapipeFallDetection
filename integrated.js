@@ -167,7 +167,7 @@ const TELEGRAM = {
   mode: "proxy",
   proxyUrl: "",
   botToken: "",
-  chatId: "",
+  // chatId removed - broadcast mode to all subscribers
   cooldownS: 60,
 };
 
@@ -177,7 +177,7 @@ async function initTelegramConfig() {
     // First, check if window.TELEGRAM_CONFIG is available (immediate fallback)
     if (window.TELEGRAM_CONFIG) {
       TELEGRAM.proxyUrl = window.TELEGRAM_CONFIG.proxyUrl || "";
-      TELEGRAM.chatId = window.TELEGRAM_CONFIG.chatId || "";
+      // chatId not used - broadcast mode
       TELEGRAM.enabled = window.TELEGRAM_CONFIG.enabled || false;
       TELEGRAM.cooldownS = window.TELEGRAM_CONFIG.cooldownS || 60;
       console.log("[Telegram] ✅ Using window.TELEGRAM_CONFIG (immediate)");
@@ -186,11 +186,10 @@ async function initTelegramConfig() {
     // Then try to load from worker (will override if successful)
     await loadConfig();
     const workerUrl = getConfig("TELEGRAM_BOT_URL");
-    const workerChatId = getConfig("TELEGRAM_CHAT_ID");
 
     if (workerUrl) {
       TELEGRAM.proxyUrl = workerUrl;
-      TELEGRAM.chatId = workerChatId || TELEGRAM.chatId;
+      // chatId not used - broadcast mode
       TELEGRAM.enabled = getConfig("TELEGRAM_ENABLED") || TELEGRAM.enabled;
       TELEGRAM.cooldownS =
         getConfig("TELEGRAM_COOLDOWN_SECONDS") || TELEGRAM.cooldownS;
@@ -200,7 +199,7 @@ async function initTelegramConfig() {
     console.log("[Telegram] Final config:", {
       enabled: TELEGRAM.enabled,
       proxyUrl: TELEGRAM.proxyUrl ? "✓ configured" : "✗ not configured",
-      chatId: TELEGRAM.chatId ? "✓ configured" : "✗ not configured",
+      mode: "broadcast to all subscribers",
     });
   } catch (error) {
     console.error(
@@ -1992,25 +1991,21 @@ function switchExercise(exerciseKey) {
 // ========== TELEGRAM HELPERS ==========
 async function sendTelegram(text) {
   if (!TELEGRAM.enabled) return false;
-  if (!TELEGRAM.chatId) return false;
+  // No chatId validation - broadcast mode to all subscribers
   try {
     if (TELEGRAM.mode === "proxy") {
       if (!TELEGRAM.proxyUrl) return false;
       const resp = await fetch(TELEGRAM.proxyUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: TELEGRAM.chatId, text }),
+        body: JSON.stringify({ text }), // Only send text, broadcast to all subscribers
       });
       return resp.ok;
     } else {
+      // Fallback mode not used in broadcast setup
       if (!TELEGRAM.botToken) return false;
-      const url = `https://api.telegram.org/bot${encodeURIComponent(
-        TELEGRAM.botToken
-      )}/sendMessage?chat_id=${encodeURIComponent(
-        TELEGRAM.chatId
-      )}&text=${encodeURIComponent(text)}`;
-      await fetch(url, { method: "GET", mode: "no-cors", cache: "no-store" });
-      return true;
+      console.warn("[Telegram] Direct mode not supported in broadcast setup");
+      return false;
     }
   } catch {
     return false;
