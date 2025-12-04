@@ -33,7 +33,7 @@ Dosen Pengampu: Sritrusta Sukaridhoto, ST., Ph.D.
 - **Live Demo:** https://spydermediapipe.netlify.app
 - **Demo Video:** https://youtu.be/dThCuthprNU (versi 1)
 https://youtu.be/lZx-6oIp6Es?si=jI0U51YTrynsoca3 (versi 2 (Menambahkan fitur Auth + Database))
-  *(Trigger siren Bardi saat jatuh)*
+- **Bot telegram:** https://t.me/Mediapipefalldetection_bot (/start untuk subscribe ke bot)
 
 ---
 
