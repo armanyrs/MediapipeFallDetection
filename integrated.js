@@ -1991,6 +1991,7 @@ function switchExercise(exerciseKey) {
 // ========== TELEGRAM HELPERS ==========
 async function sendTelegram(text) {
   if (!TELEGRAM.enabled) return false;
+  if (!text || !text.trim()) return false; // Validate text is not empty
   // No chatId validation - broadcast mode to all subscribers
   try {
     // Only proxy mode is supported in broadcast setup
